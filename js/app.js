@@ -1,6 +1,6 @@
 // ===== Restaurant POS System - Main JavaScript =====
 
-const API_URL = 'http://localhost:3000/api';
+const API_URL = 'https://restaurant-pos-api.llarwiw.workers.dev/api';
 
 // ===== Global State =====
 let currentOrder = [];
