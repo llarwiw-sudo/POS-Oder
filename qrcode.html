@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>สร้าง QR Code สำหรับโต๊ะ</title>
+  <link rel="stylesheet" href="css/qrcode.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-icon">📱</div>
+      <h1>สร้าง QR Code สำหรับโต๊ะ</h1>
+      <p>สร้าง QR Code เพื่อให้ลูกค้าสแกนสั่งอาหาร</p>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <div class="form-group">
+        <label>URL ของระบบ (IP หรือ Domain)</label>
+        <input type="text" id="base-url" value="http://localhost:3000" placeholder="http://your-ip:3000">
+      </div>
+      <div class="form-group">
+        <label>เลือก Zone</label>
+        <select id="zone-select">
+          <option value="all">ทั้งหมด</option>
+          <option value="A">Zone A</option>
+          <option value="B">Zone B</option>
+          <option value="C">Zone C</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="generateQRCodes()">
+        <span>⚡</span> สร้าง QR Code
+      </button>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+      <button class="btn btn-success" onclick="window.print()">
+        <span>🖨️</span> พิมพ์ QR Code
+      </button>
+      <button class="btn btn-secondary" onclick="downloadAll()">
+        <span>💾</span> ดาวน์โหลดทั้งหมด
+      </button>
+    </div>
+
+    <!-- QR Grid -->
+    <div class="qr-grid" id="qr-grid">
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>กำลังโหลดข้อมูลโต๊ะ...</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let tables = [];
+
+    async function loadTables() {
+      try {
+        const res = await fetch('http://localhost:3000/api/tables');
+        if (!res.ok) throw new Error('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
+        tables = await res.json();
+        if (tables.length === 0) {
+          document.getElementById('qr-grid').innerHTML = `
+            <div class="empty-state">
+              <div class="icon">🪑</div>
+              <h3>ไม่พบข้อมูลโต๊ะ</h3>
+              <p>กรุณาเพิ่มโต๊ะในระบบก่อน</p>
+            </div>
+          `;
+          return;
+        }
+        generateQRCodes();
+      } catch (error) {
+        document.getElementById('qr-grid').innerHTML = `
+          <div class="empty-state">
+            <div class="icon">⚠️</div>
+            <h3>เกิดข้อผิดพลาด</h3>
+            <p>${error.message}</p>
+            <p class="hint">กรุณาตรวจสอบว่า Server กำลังทำงานอยู่</p>
+          </div>
+        `;
+      }
+    }
+
+    async function generateQRCodes() {
+      const baseUrl = document.getElementById('base-url').value.replace(/\/$/, '');
+      const zone = document.getElementById('zone-select').value;
+      
+      const filtered = zone === 'all' ? tables : tables.filter(t => t.zone === zone);
+      const grid = document.getElementById('qr-grid');
+      
+      grid.innerHTML = '';
+      
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <div class="icon">🔍</div>
+            <h3>ไม่พบโต๊ะใน Zone นี้</h3>
+            <p>กรุณาเลือก Zone อื่น</p>
+          </div>
+        `;
+        return;
+      }
+      
+      for (const table of filtered) {
+        const url = `${baseUrl}/customer.html?table=${table.id}`;
+        
+        const card = document.createElement('div');
+        card.className = 'qr-card';
+        card.innerHTML = `
+          <div class="qr-card-header">
+            <h3>โต๊ะ ${table.table_number}</h3>
+            <span class="zone-badge">Zone ${table.zone}</span>
+          </div>
+          <div class="qr-container" id="qr-${table.id}"></div>
+          <div class="qr-card-footer">
+            <div class="table-detail">
+              <span class="detail-icon">🪑</span>
+              <span>${table.capacity} ที่นั่ง</span>
+            </div>
+            <div class="table-url">${url}</div>
+          </div>
+        `;
+        grid.appendChild(card);
+        
+        // Generate QR Code
+        try {
+          const qrContainer = document.getElementById(`qr-${table.id}`);
+          new QRCode(qrContainer, {
+            text: url,
+            width: 160,
+            height: 160,
+            colorDark: "#1a1a24",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        } catch (error) {
+          console.error('QR Code generation error:', error);
+          document.getElementById(`qr-${table.id}`).innerHTML = `
+            <div class="qr-error">
+              <span>❌</span>
+              <p>สร้าง QR ไม่สำเร็จ</p>
+            </div>
+          `;
+        }
+      }
+    }
+
+    async function downloadAll() {
+      const qrContainers = document.querySelectorAll('.qr-container');
+      let downloaded = 0;
+      
+      qrContainers.forEach((container, index) => {
+        const img = container.querySelector('img');
+        if (img) {
+          setTimeout(() => {
+            const link = document.createElement('a');
+            link.download = `qr-table-${index + 1}.png`;
+            link.href = img.src;
+            link.click();
+            downloaded++;
+          }, index * 200);
+        }
+      });
+      
+      setTimeout(() => {
+        alert(`ดาวน์โหลด ${downloaded} ไฟล์สำเร็จ!`);
+      }, qrContainers.length * 200 + 500);
+    }
+
+    loadTables();
+  </script>
+</body>
+</html>

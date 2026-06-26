@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ใบเสร็จ - Restaurant</title>
+  <link rel="stylesheet" href="css/receipt.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container" id="receipt-content">
+    <div class="loading">
+      <div class="spinner"></div>
+      <p>กำลังโหลดใบเสร็จ...</p>
+    </div>
+  </div>
+  
+  <div class="controls" id="controls" style="display:none;">
+    <button class="btn btn-print" onclick="window.print()">
+      <span>🖨️</span> พิมพ์ใบเสร็จ
+    </button>
+    <button class="btn btn-close" onclick="window.close()">
+      <span>✕</span> ปิด
+    </button>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000/api';
+    
+    async function loadReceipt() {
+      const params = new URLSearchParams(window.location.search);
+      const orderId = params.get('order');
+      
+      if (!orderId) {
+        document.getElementById('receipt-content').innerHTML = `
+          <div class="empty-state">
+            <div class="icon">❌</div>
+            <h3>ไม่พบเลขออเดอร์</h3>
+          </div>
+        `;
+        return;
+      }
+      
+      try {
+        const res = await fetch(`${API_URL}/orders/${orderId}/receipt`);
+        const data = await res.json();
+        
+        if (data.error) {
+          document.getElementById('receipt-content').innerHTML = `
+            <div class="empty-state">
+              <div class="icon">⚠️</div>
+              <h3>เกิดข้อผิดพลาด</h3>
+              <p>${data.error}</p>
+            </div>
+          `;
+          return;
+        }
+        
+        const { order, items, payments } = data;
+        const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const payment = payments && payments.length > 0 ? payments[0] : null;
+        
+        const paymentMethods = {
+          'cash': '💵 เงินสด',
+          'card': '💳 บัตรเครดิต',
+          'qrcode': '📱 QR Code'
+        };
+        
+        document.getElementById('receipt-content').innerHTML = `
+          <div class="receipt-header">
+            <div class="logo">🍽️</div>
+            <h1>Restaurant POS</h1>
+            <p class="subtitle">ใบเสร็จรับเงิน</p>
+          </div>
+          
+          <div class="order-info">
+            <div class="info-row">
+              <span class="label">เลขออเดอร์</span>
+              <span class="value">#${order.order_number}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">โต๊ะ</span>
+              <span class="value">${order.table_number || '-'}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">วันที่</span>
+              <span class="value">${new Date(order.created_at).toLocaleString('th-TH')}</span>
+            </div>
+          </div>
+          
+          <div class="items-section">
+            <div class="section-header">รายการอาหาร</div>
+            ${items.map(item => `
+              <div class="item">
+                <div class="item-info">
+                  <span class="name">${item.name}</span>
+                  <span class="qty">x${item.quantity}</span>
+                </div>
+                <span class="price">฿${(item.price * item.quantity).toLocaleString()}</span>
+              </div>
+            `).join('')}
+          </div>
+          
+          <div class="total-section">
+            <div class="total-row">
+              <span>ยอดรวม</span>
+              <strong>฿${total.toLocaleString()}</strong>
+            </div>
+          </div>
+          
+          ${payment ? `
+            <div class="payment-section">
+              <div class="section-header">ข้อมูลการชำระเงิน</div>
+              <div class="info-row">
+                <span class="label">วิธีชำระเงิน</span>
+                <span class="value">${paymentMethods[payment.payment_method] || payment.payment_method}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">วันที่ชำระ</span>
+                <span class="value">${new Date(payment.created_at).toLocaleString('th-TH')}</span>
+              </div>
+            </div>
+          ` : ''}
+          
+          <div class="receipt-footer">
+            <div class="thanks">ขอบคุณที่ใช้บริการ</div>
+            <div class="powered">🍽️ Restaurant POS System</div>
+          </div>
+        `;
+        
+        document.getElementById('controls').style.display = 'flex';
+      } catch (error) {
+        document.getElementById('receipt-content').innerHTML = `
+          <div class="empty-state">
+            <div class="icon">📡</div>
+            <h3>เชื่อมต่อไม่ได้</h3>
+            <p>กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต</p>
+          </div>
+        `;
+      }
+    }
+    
+    loadReceipt();
+  </script>
+</body>
+</html>

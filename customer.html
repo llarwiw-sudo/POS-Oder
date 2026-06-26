@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>สั่งอาหาร - Restaurant</title>
+  <link rel="stylesheet" href="css/customer.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <h1>🍽️ สั่งอาหาร</h1>
+    <div class="table-info" id="table-info">กำลังโหลด...</div>
+  </header>
+
+  <!-- Categories -->
+  <div class="categories" id="categories"></div>
+
+  <!-- Menu Grid -->
+  <div class="menu-grid" id="menu-grid">
+    <div class="loading"></div>
+  </div>
+
+  <!-- Cart Bar -->
+  <div class="cart-bar">
+    <div class="cart-info">
+      <div><span class="count" id="cart-count">0</span> รายการ</div>
+      <div class="total">฿<span id="cart-total">0</span></div>
+    </div>
+    <button class="cart-btn" id="view-cart" onclick="showCart()" disabled>ดูตะกร้า</button>
+  </div>
+
+  <!-- Cart Modal -->
+  <div class="modal" id="cart-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>🛒 ตะกร้าสินค้า</h3>
+        <button class="close-btn" onclick="closeCart()">&times;</button>
+      </div>
+      <div id="cart-items"></div>
+      <div class="cart-summary">
+        <div class="total-row">
+          <span class="total-label">ยอดรวม</span>
+          <span class="total-value">฿<span id="modal-total">0</span></span>
+        </div>
+      </div>
+      <button class="submit-btn" id="submit-order" onclick="submitOrder()">
+        📤 ส่งออเดอร์เข้าครัว
+      </button>
+    </div>
+  </div>
+
+  <!-- Success Modal -->
+  <div class="modal success-modal" id="success-modal">
+    <div class="modal-content">
+      <div class="success-icon">✅</div>
+      <h2>สั่งอาหารสำเร็จ!</h2>
+      <p>ออเดอร์ของคุณถูกส่งเข้าครัวแล้ว</p>
+      <div class="order-number" id="success-order-num"></div>
+      <p style="margin-top: 16px;">กรุณารอสักครู่ อาหารจะถูกนำมาเสิร์ฟ</p>
+      <button class="submit-btn" onclick="closeSuccess()">ตกลง</button>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API_URL = 'http://localhost:3000/api';
+    let tableId = null;
+    let tableNumber = null;
+    let cart = [];
+    let menuItems = [];
+    let categories = [];
+    let tableCheckInterval = null;
+
+    // Initialize
+    function init() {
+      const params = new URLSearchParams(window.location.search);
+      tableId = parseInt(params.get('table'));
+      
+      if (!tableId) {
+        document.getElementById('table-info').textContent = 'ไม่พบข้อมูลโต๊ะ กรุณาสแกน QR Code';
+        document.getElementById('menu-grid').innerHTML = `
+          <div class="empty-state">
+            <div class="icon">📱</div>
+            <h2>ไม่พบข้อมูลโต๊ะ</h2>
+            <p>กรุณาสแกน QR Code ที่โต๊ะของคุณ</p>
+          </div>
+        `;
+        return;
+      }
+      
+      loadTable();
+      loadMenu();
+      
+      // Re-check table status every 30 seconds
+      tableCheckInterval = setInterval(async () => {
+        if (cart.length === 0) return;
+        
+        try {
+          const res = await fetch(`${API_URL}/tables/${tableId}/status`);
+          const table = await res.json();
+          if (!table.can_order) {
+            clearInterval(tableCheckInterval);
+            showToast('⚠️ โต๊ะนี้ปิดใช้งานแล้ว กรุณาเรียกพนักงาน', 'error');
+            setTimeout(() => location.reload(), 2000);
+          }
+        } catch (e) {
+          console.error('Table check failed:', e);
+        }
+      }, 30000);
+    }
+
+    // Load table info
+    async function loadTable() {
+      try {
+        const res = await fetch(`${API_URL}/tables/${tableId}/status`);
+        const table = await res.json();
+        
+        if (table.error) {
+          document.getElementById('table-info').textContent = table.error;
+          document.getElementById('menu-grid').innerHTML = `
+            <div class="empty-state">
+              <div class="icon">❌</div>
+              <h2>เกิดข้อผิดพลาด</h2>
+              <p>${table.error}</p>
+            </div>
+          `;
+          return;
+        }
+        
+        tableNumber = table.table_number;
+        const tableInfo = document.getElementById('table-info');
+        tableInfo.textContent = `โต๊ะ ${tableNumber} • ${table.capacity} ที่นั่ง`;
+        tableInfo.classList.add('highlight');
+        
+        // Check if table is occupied
+        if (!table.can_order) {
+          document.getElementById('menu-grid').innerHTML = `
+            <div class="empty-state">
+              <div class="icon">🔒</div>
+              <h2>โต๊ะนี้ยังไม่ได้เปิดใช้งาน</h2>
+              <p>กรุณาเรียกพนักงานเพื่อเปิดโต๊ะก่อนสั่งอาหาร</p>
+            </div>
+          `;
+          document.getElementById('view-cart').disabled = true;
+          return;
+        }
+      } catch (error) {
+        document.getElementById('table-info').textContent = 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้';
+        document.getElementById('menu-grid').innerHTML = `
+          <div class="empty-state">
+            <div class="icon">📡</div>
+            <h2>เชื่อมต่อไม่ได้</h2>
+            <p>กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต</p>
+          </div>
+        `;
+      }
+    }
+
+    // Load menu
+    async function loadMenu() {
+      try {
+        const [menuRes, catRes] = await Promise.all([
+          fetch(`${API_URL}/menu`),
+          fetch(`${API_URL}/categories`)
+        ]);
+        
+        menuItems = await menuRes.json();
+        categories = await catRes.json();
+        
+        renderCategories();
+        renderMenu();
+      } catch (error) {
+        document.getElementById('menu-grid').innerHTML = `
+          <div class="empty-state">
+            <div class="icon">⚠️</div>
+            <h2>ไม่สามารถโหลดเมนูได้</h2>
+            <p>กรุณาลองใหม่อีกครั้ง</p>
+          </div>
+        `;
+      }
+    }
+
+    // Render categories
+    function renderCategories() {
+      const container = document.getElementById('categories');
+      container.innerHTML = `
+        <button class="cat-btn active" data-cat="all">🍽️ ทั้งหมด</button>
+        ${categories.map(c => `
+          <button class="cat-btn" data-cat="${c.id}">${c.icon || '🍴'} ${c.name}</button>
+        `).join('')}
+      `;
+      
+      container.querySelectorAll('.cat-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          container.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          renderMenu(btn.dataset.cat);
+        });
+      });
+    }
+
+    // Render menu
+    function renderMenu(catId = 'all') {
+      const grid = document.getElementById('menu-grid');
+      let filtered = catId === 'all' ? menuItems : menuItems.filter(m => m.category_id == catId);
+      filtered = filtered.filter(m => m.is_available);
+      
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <div class="icon">🍽️</div>
+            <h2>ไม่มีเมนูในหมวดนี้</h2>
+            <p>กรุณาเลือกหมวดอื่น</p>
+          </div>
+        `;
+        return;
+      }
+      
+      grid.innerHTML = filtered.map(m => `
+        <div class="menu-card" onclick="addToCart(${m.id}, '${m.name.replace(/'/g, "\\'")}', ${m.price})">
+          <div class="name">${m.name}</div>
+          <div class="desc">${m.description || 'อร่อย'}</div>
+          <div class="price">฿${m.price}</div>
+        </div>
+      `).join('');
+    }
+
+    // Add to cart
+    function addToCart(id, name, price) {
+      const existing = cart.find(item => item.menu_item_id === id);
+      if (existing) {
+        existing.quantity++;
+        showToast(`เพิ่ม ${name} อีก 1 รายการ`, 'success');
+      } else {
+        cart.push({ menu_item_id: id, name, price, quantity: 1, special_note: '' });
+        showToast(`เพิ่ม ${name} ลงตะกร้า`, 'success');
+      }
+      updateCart();
+    }
+
+    // Update cart display
+    function updateCart() {
+      const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+      const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      
+      document.getElementById('cart-count').textContent = count;
+      document.getElementById('cart-total').textContent = total.toLocaleString();
+      document.getElementById('view-cart').disabled = count === 0;
+    }
+
+    // Show cart modal
+    function showCart() {
+      const modal = document.getElementById('cart-modal');
+      const container = document.getElementById('cart-items');
+      
+      if (cart.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state" style="padding: 30px;">
+            <div class="icon">🛒</div>
+            <p>ยังไม่มีรายการในตะกร้า</p>
+          </div>
+        `;
+      } else {
+        container.innerHTML = cart.map((item, index) => `
+          <div class="cart-item">
+            <div class="item-info">
+              <div class="item-name">${item.name}</div>
+              <div class="item-price">฿${item.price} × ${item.quantity}</div>
+              <div class="item-subtotal">= ฿${(item.price * item.quantity).toLocaleString()}</div>
+              <input type="text" class="note-input" placeholder="หมายเหตุ (เช่น ไม่ใส่ผัก, เผ็ดน้อย)" 
+                     value="${item.special_note || ''}" 
+                     onchange="cart[${index}].special_note = this.value">
+            </div>
+            <div class="qty-controls">
+              <button class="qty-btn" onclick="changeQty(${index}, -1)">−</button>
+              <span class="qty-value">${item.quantity}</span>
+              <button class="qty-btn" onclick="changeQty(${index}, 1)">+</button>
+            </div>
+          </div>
+        `).join('');
+      }
+      
+      const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      document.getElementById('modal-total').textContent = total.toLocaleString();
+      modal.classList.add('active');
+    }
+
+    // Close cart
+    function closeCart() {
+      document.getElementById('cart-modal').classList.remove('active');
+    }
+
+    // Change quantity
+    function changeQty(index, delta) {
+      cart[index].quantity += delta;
+      if (cart[index].quantity <= 0) {
+        const name = cart[index].name;
+        cart.splice(index, 1);
+        showToast(`ลบ ${name} ออกจากตะกร้า`, 'success');
+      }
+      updateCart();
+      showCart();
+    }
+
+    // Submit order
+    async function submitOrder() {
+      if (!tableId || cart.length === 0) return;
+      
+      // Re-check table status
+      const statusRes = await fetch(`${API_URL}/tables/${tableId}/status`);
+      const tableStatus = await statusRes.json();
+      
+      if (!tableStatus.can_order) {
+        showToast('⚠️ โต๊ะนี้ปิดใช้งานแล้ว', 'error');
+        closeCart();
+        setTimeout(() => location.reload(), 2000);
+        return;
+      }
+      
+      const orderNumber = `QR-${Date.now().toString().slice(-6)}`;
+      const btn = document.getElementById('submit-order');
+      btn.disabled = true;
+      btn.textContent = '⏳ กำลังส่งออเดอร์...';
+      
+      try {
+        const result = await fetch(`${API_URL}/orders`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            table_id: tableId,
+            order_number: orderNumber,
+            items: cart.map(item => ({
+              menu_item_id: item.menu_item_id,
+              quantity: item.quantity,
+              special_note: item.special_note
+            })),
+            created_by: null
+          })
+        });
+        
+        const data = await result.json();
+        
+        if (data.success) {
+          closeCart();
+          document.getElementById('success-order-num').textContent = `#${orderNumber}`;
+          document.getElementById('success-modal').classList.add('active');
+          cart = [];
+          updateCart();
+          showToast('✅ ส่งออเดอร์สำเร็จ!', 'success');
+        } else {
+          if (data.table_status !== 'occupied') {
+            showToast('⚠️ โต๊ะนี้ปิดใช้งานแล้ว', 'error');
+            closeCart();
+            setTimeout(() => location.reload(), 2000);
+          } else {
+            showToast('❌ เกิดข้อผิดพลาด: ' + (data.error || ''), 'error');
+          }
+        }
+      } catch (error) {
+        showToast('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+        console.error(error);
+      }
+      
+      btn.disabled = false;
+      btn.textContent = '📤 ส่งออเดอร์เข้าครัว';
+    }
+
+    // Close success modal
+    function closeSuccess() {
+      document.getElementById('success-modal').classList.remove('active');
+    }
+
+    // Show toast notification
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast ${type} show`;
+      
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2500);
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('cart-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'cart-modal') closeCart();
+    });
+
+    // Initialize
+    init();
+  </script>
+</body>
+</html>

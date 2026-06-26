@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบ POS ร้านอาหาร</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Sidebar Navigation -->
+  <nav class="sidebar">
+    <div class="logo">
+      <h1>🍽️ Restaurant POS</h1>
+    </div>
+    <ul class="nav-menu">
+      <li class="nav-item active" data-page="dashboard">
+        <span class="icon">📊</span>
+        <span class="text">Dashboard</span>
+      </li>
+      <li class="nav-item" data-page="tables">
+        <span class="icon">🪑</span>
+        <span class="text">จัดการโต๊ะ</span>
+      </li>
+      <li class="nav-item" data-page="orders">
+        <span class="icon">📝</span>
+        <span class="text">รับออเดอร์</span>
+      </li>
+      <li class="nav-item" data-page="menu">
+        <span class="icon">🍽️</span>
+        <span class="text">จัดการเมนู</span>
+      </li>
+      <li class="nav-item" data-page="kitchen">
+        <span class="icon">👨‍🍳</span>
+        <span class="text">หน้าจอครัว</span>
+      </li>
+      <li class="nav-item" data-page="payments">
+        <span class="icon">💰</span>
+        <span class="text">ชำระเงิน</span>
+      </li>
+      <li class="nav-item" data-page="reservations">
+        <span class="icon">📅</span>
+        <span class="text">จองโต๊ะ</span>
+      </li>
+      <li class="nav-item" data-page="staff">
+        <span class="icon">👥</span>
+        <span class="text">พนักงาน</span>
+      </li>
+      <li class="nav-item" data-page="inventory">
+        <span class="icon">📦</span>
+        <span class="text">สต็อก</span>
+      </li>
+      <li class="nav-item" data-page="reports">
+        <span class="icon">📈</span>
+        <span class="text">รายงาน</span>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Header -->
+    <header class="header">
+      <h2 id="page-title">Dashboard</h2>
+      <div class="header-info">
+        <span id="current-time"></span>
+        <span id="current-date"></span>
+      </div>
+    </header>
+
+    <!-- Dashboard Page -->
+    <div id="page-dashboard" class="page active">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">🪑</div>
+          <div class="stat-info">
+            <h3>โต๊ะว่าง</h3>
+            <p id="stat-available">0</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🍽️</div>
+          <div class="stat-info">
+            <h3>โต๊ะที่มีลูกค้า</h3>
+            <p id="stat-occupied">0</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📝</div>
+          <div class="stat-info">
+            <h3>ออเดอร์ที่กำลังทำ</h3>
+            <p id="stat-active-orders">0</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">💰</div>
+          <div class="stat-info">
+            <h3>ยอดขายวันนี้</h3>
+            <p id="stat-today-sales">฿0</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📋</div>
+          <div class="stat-info">
+            <h3>ออเดอร์วันนี้</h3>
+            <p id="stat-today-orders">0</p>
+          </div>
+        </div>
+        <div class="stat-card warning">
+          <div class="stat-icon">⚠️</div>
+          <div class="stat-info">
+            <h3>สต็อกใกล้หมด</h3>
+            <p id="stat-low-stock">0</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <div class="dashboard-section">
+          <h3>ออเดอร์ล่าสุด</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>เลขออเดอร์</th>
+                <th>โต๊ะ</th>
+                <th>สถานะ</th>
+                <th>ยอดรวม</th>
+              </tr>
+            </thead>
+            <tbody id="recent-orders"></tbody>
+          </table>
+        </div>
+        <div class="dashboard-section">
+          <h3>เมนูยอดนิยม</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>เมนู</th>
+                <th>จำนวนที่ขาย</th>
+                <th>รายได้</th>
+              </tr>
+            </thead>
+            <tbody id="popular-menu"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tables Page -->
+    <div id="page-tables" class="page">
+      <div class="page-header">
+        <h3>🪑 จัดการโต๊ะ</h3>
+        <div class="header-actions">
+          <span class="table-legend"><span class="legend-dot available"></span> ว่าง</span>
+          <span class="table-legend"><span class="legend-dot occupied"></span> มีลูกค้า</span>
+          <span class="table-legend"><span class="legend-dot reserved"></span> จอง</span>
+          <span class="table-legend"><span class="legend-dot merged"></span> รวม</span>
+          <button class="btn btn-primary btn-sm" id="merge-tables-btn">
+            <span>🔗</span> รวมโต๊ะ
+          </button>
+        </div>
+      </div>
+      <div class="zone-filter">
+        <button class="zone-btn active" data-zone="all">ทั้งหมด</button>
+        <button class="zone-btn" data-zone="A">Zone A</button>
+        <button class="zone-btn" data-zone="B">Zone B</button>
+        <button class="zone-btn" data-zone="C">Zone C</button>
+      </div>
+      <div class="tables-grid" id="tables-grid"></div>
+    </div>
+
+    <!-- Orders Page -->
+    <div id="page-orders" class="page">
+      <div class="page-header">
+        <h3>📝 รับออเดอร์</h3>
+      </div>
+      <div class="orders-layout">
+        <div class="order-select">
+          <div class="section-title">เลือกโต๊ะ</div>
+          <div class="table-select-grid" id="order-table-select"></div>
+          <div class="order-form" id="order-form" style="display:none;">
+            <div class="order-form-header">
+              <h3>สร้างออเดอร์ - โต๊ะ <span id="selected-table" class="highlight"></span></h3>
+            </div>
+            <div class="menu-categories" id="order-categories"></div>
+            <div class="menu-items-grid" id="order-menu-items"></div>
+            <div class="order-summary">
+              <div class="summary-title">สรุปรายการ</div>
+              <div id="order-items-list"></div>
+              <div class="order-total">
+                <span>รวม</span>
+                <strong>฿<span id="order-total">0</span></strong>
+              </div>
+              <button class="btn btn-primary btn-block" id="submit-order">
+                <span>📤</span> ส่งออเดอร์เข้าครัว
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Menu Page -->
+    <div id="page-menu" class="page">
+      <div class="page-header">
+        <h3>🍽️ จัดการเมนูอาหาร</h3>
+        <button class="btn btn-primary" id="add-menu-btn">
+          <span>+</span> เพิ่มเมนู
+        </button>
+      </div>
+      <div class="menu-management">
+        <div class="filter-bar">
+          <select id="menu-category-filter">
+            <option value="">ทั้งหมด</option>
+          </select>
+        </div>
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ชื่อเมนู</th>
+                <th>หมวดหมู่</th>
+                <th>ราคา</th>
+                <th>สถานะ</th>
+                <th>ยอดนิยม</th>
+                <th>จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="menu-list"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kitchen Page -->
+    <div id="page-kitchen" class="page">
+      <div class="page-header">
+        <h3>👨‍🍳 หน้าจอครัว</h3>
+        <button class="btn btn-secondary" id="refresh-kitchen">
+          <span>🔄</span> รีเฟรช
+        </button>
+      </div>
+      <div class="kitchen-status-bar">
+        <div class="status-item pending">
+          <span class="status-count" id="kitchen-pending">0</span>
+          <span class="status-label">รอทำ</span>
+        </div>
+        <div class="status-item preparing">
+          <span class="status-count" id="kitchen-preparing">0</span>
+          <span class="status-label">กำลังทำ</span>
+        </div>
+        <div class="status-item ready">
+          <span class="status-count" id="kitchen-ready">0</span>
+          <span class="status-label">เสร็จแล้ว</span>
+        </div>
+      </div>
+      <div class="kitchen-grid" id="kitchen-orders"></div>
+    </div>
+
+    <!-- Payments Page -->
+    <div id="page-payments" class="page">
+      <div class="page-header">
+        <h3>💰 ชำระเงิน</h3>
+      </div>
+      <div class="payments-layout">
+        <div class="payment-select">
+          <div class="section-title">เลือกออเดอร์เพื่อชำระเงิน</div>
+          <div id="payment-orders-list"></div>
+        </div>
+        <div class="payment-form" id="payment-form" style="display:none;">
+          <div class="payment-form-header">
+            <h3>ออเดอร์ #<span id="payment-order-id" class="highlight"></span></h3>
+          </div>
+          <div class="payment-details">
+            <div class="payment-items-title">รายการอาหาร</div>
+            <div id="payment-items"></div>
+            <div class="payment-total">
+              <span>ยอดรวม</span>
+              <strong>฿<span id="payment-total">0</span></strong>
+            </div>
+            <div class="payment-methods-title">เลือกวิธีชำระเงิน</div>
+            <div class="payment-methods">
+              <button class="btn btn-success" data-method="cash">
+                <span>💵</span> เงินสด
+              </button>
+              <button class="btn btn-info" data-method="card">
+                <span>💳</span> บัตรเครดิต
+              </button>
+              <button class="btn btn-warning" data-method="qrcode">
+                <span>📱</span> QR Code
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reservations Page -->
+    <div id="page-reservations" class="page">
+      <div class="page-header">
+        <h3>📅 จองโต๊ะ</h3>
+      </div>
+      <div class="reservations-layout">
+        <div class="reservation-form" id="reservation-form">
+          <div class="section-title">เพิ่มการจองใหม่</div>
+          <div class="form-group">
+            <label>ชื่อลูกค้า</label>
+            <input type="text" id="res-name" placeholder="ชื่อ-นามสกุล">
+          </div>
+          <div class="form-group">
+            <label>เบอร์โทรศัพท์</label>
+            <input type="text" id="res-phone" placeholder="08x-xxx-xxxx">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>วันที่</label>
+              <input type="date" id="res-date">
+            </div>
+            <div class="form-group">
+              <label>เวลา</label>
+              <input type="time" id="res-time">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>จำนวนคน</label>
+            <input type="number" id="res-guests" min="1" value="2">
+          </div>
+          <div class="form-group">
+            <label>เลือกโต๊ะ</label>
+            <select id="res-table"></select>
+          </div>
+          <div class="form-group">
+            <label>หมายเหตุ</label>
+            <textarea id="res-notes" rows="2" placeholder="เช่น วันเกิด, ต้องการที่นั่งติดหน้าต่าง"></textarea>
+          </div>
+          <button class="btn btn-primary btn-block" id="submit-reservation">
+            <span>✓</span> บันทึกการจอง
+          </button>
+        </div>
+        <div class="reservations-list">
+          <div class="section-title">รายการจอง</div>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ชื่อ</th>
+                  <th>เบอร์โทร</th>
+                  <th>วันที่</th>
+                  <th>เวลา</th>
+                  <th>โต๊ะ</th>
+                  <th>จำนวน</th>
+                  <th>สถานะ</th>
+                </tr>
+              </thead>
+              <tbody id="reservations-list"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Staff Page -->
+    <div id="page-staff" class="page">
+      <div class="page-header">
+        <h3>👥 จัดการพนักงาน</h3>
+        <button class="btn btn-primary" id="add-staff-btn">
+          <span>+</span> เพิ่มพนักงาน
+        </button>
+      </div>
+      <div class="staff-form-container" id="staff-form-container" style="display:none;">
+        <div class="section-title">เพิ่มพนักงานใหม่</div>
+        <div class="form-group">
+          <label>ชื่อพนักงาน</label>
+          <input type="text" id="staff-name" placeholder="ชื่อ-นามสกุล">
+        </div>
+        <div class="form-group">
+          <label>ตำแหน่ง</label>
+          <select id="staff-role">
+            <option value="manager">ผู้จัดการ</option>
+            <option value="cashier">แคชเชียร์</option>
+            <option value="waiter">เด็กเสิร์ฟ</option>
+            <option value="chef">เชฟ</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>เบอร์โทรศัพท์</label>
+          <input type="text" id="staff-phone" placeholder="08x-xxx-xxxx">
+        </div>
+        <div class="form-group">
+          <label>อีเมล</label>
+          <input type="email" id="staff-email" placeholder="email@example.com">
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" id="submit-staff">
+            <span>✓</span> บันทึก
+          </button>
+          <button class="btn btn-secondary" id="cancel-staff">ยกเลิก</button>
+        </div>
+      </div>
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ชื่อ</th>
+              <th>ตำแหน่ง</th>
+              <th>เบอร์โทร</th>
+              <th>อีเมล</th>
+              <th>สถานะ</th>
+            </tr>
+          </thead>
+          <tbody id="staff-list"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Inventory Page -->
+    <div id="page-inventory" class="page">
+      <div class="page-header">
+        <h3>📦 จัดการสต็อก</h3>
+      </div>
+      <div class="inventory-alerts" id="inventory-alerts"></div>
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ชื่อวัตถุดิบ</th>
+              <th>หน่วย</th>
+              <th>คงเหลือ</th>
+              <th>ขั้นต่ำ</th>
+              <th>ราคา/หน่วย</th>
+              <th>จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="inventory-list"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Reports Page -->
+    <div id="page-reports" class="page">
+      <div class="page-header">
+        <h3>📈 รายงาน</h3>
+      </div>
+      <div class="report-filters">
+        <div class="filter-row">
+          <div class="form-group">
+            <label>วันที่เริ่มต้น</label>
+            <input type="date" id="report-start">
+          </div>
+          <div class="form-group">
+            <label>วันที่สิ้นสุด</label>
+            <input type="date" id="report-end">
+          </div>
+          <div class="form-group form-group-btn">
+            <button class="btn btn-primary" id="generate-report">
+              <span>📊</span> ดูรายงาน
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="reports-grid">
+        <div class="report-section">
+          <div class="section-title">ยอดขายรายวัน</div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>วันที่</th>
+                <th>จำนวนออเดอร์</th>
+                <th>ยอดขาย</th>
+              </tr>
+            </thead>
+            <tbody id="sales-report"></tbody>
+          </table>
+        </div>
+        <div class="report-section">
+          <div class="section-title">เมนูยอดนิยม</div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>เมนู</th>
+                <th>จำนวนที่ขาย</th>
+                <th>รายได้</th>
+              </tr>
+            </thead>
+            <tbody id="popular-report"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal for Add/Edit Menu -->
+  <div class="modal" id="menu-modal">
+    <div class="modal-content">
+      <span class="close-modal" id="close-menu-modal">&times;</span>
+      <div class="section-title" id="menu-modal-title">เพิ่มเมนูใหม่</div>
+      <div class="form-group">
+        <label>ชื่อเมนู</label>
+        <input type="text" id="menu-name" placeholder="ชื่อเมนู">
+      </div>
+      <div class="form-group">
+        <label>รายละเอียด</label>
+        <textarea id="menu-desc" rows="2" placeholder="รายละเอียดเมนู..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>ราคา (฿)</label>
+        <input type="number" id="menu-price" min="0" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>หมวดหมู่</label>
+        <select id="menu-category"></select>
+      </div>
+      <button class="btn btn-primary btn-block" id="save-menu">
+        <span>✓</span> บันทึก
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal for Merge Tables -->
+  <div class="modal" id="merge-modal">
+    <div class="modal-content">
+      <span class="close-modal" id="close-merge-modal">&times;</span>
+      <div class="section-title">🔗 รวมโต๊ะ</div>
+      <p style="color: rgba(255,255,255,0.5); font-size: 0.85rem; margin-bottom: 16px;">
+        เลือกโต๊ะที่ต้องการรวม (ต้องเป็นโต๊ะว่างเท่านั้น)
+      </p>
+      <div class="merge-tables-select" id="merge-tables-select"></div>
+      <div class="form-group" style="margin-top: 16px;">
+        <label>ชื่อโต๊ะใหม่ (ไม่ต้องใส่ก็ได้)</label>
+        <input type="text" id="merge-table-name" placeholder="เช่น T99">
+      </div>
+      <div class="merge-summary" id="merge-summary" style="display:none;">
+        <div class="merge-info">
+          <span>โต๊ะที่เลือก:</span>
+          <span id="merge-selected-tables">-</span>
+        </div>
+        <div class="merge-info">
+          <span>จำนวนที่นั่งรวม:</span>
+          <span id="merge-total-capacity" class="highlight">0</span>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block" id="confirm-merge" disabled>
+        <span>🔗</span> รวมโต๊ะ
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal for Edit Inventory -->
+  <div class="modal" id="inventory-modal">
+    <div class="modal-content">
+      <span class="close-modal" id="close-inventory-modal">&times;</span>
+      <div class="section-title">แก้ไขสต็อก</div>
+      <input type="hidden" id="inv-id">
+      <div class="form-group">
+        <label>ชื่อวัตถุดิบ</label>
+        <input type="text" id="inv-name" disabled>
+      </div>
+      <div class="form-group">
+        <label>จำนวนคงเหลือ</label>
+        <input type="number" id="inv-quantity" min="0" step="0.1">
+      </div>
+      <div class="form-group">
+        <label>จำนวนขั้นต่ำ</label>
+        <input type="number" id="inv-min" min="0" step="0.1">
+      </div>
+      <button class="btn btn-primary btn-block" id="save-inventory">
+        <span>✓</span> บันทึก
+      </button>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
