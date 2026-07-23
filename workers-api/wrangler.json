@@ -1,12 +1,12 @@
 {
   "$schema": "https://raw.githubusercontent.com/cloudflare/workers-sdk/main/packages/wrangler/config-schema.json",
-  "name": "restaurant-pos-api",
+  "name": "warp-orders-api",
   "main": "src/index.js",
   "compatibility_date": "2024-01-01",
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "restaurant-pos-db",
+      "database_name": "warp-orders-db",
       "database_id": "20da41a6-c8c9-4a73-8bd2-dd753d9baddf"
     }
   ],

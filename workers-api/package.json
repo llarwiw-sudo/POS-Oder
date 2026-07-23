@@ -1,14 +1,14 @@
 {
-  "name": "restaurant-pos-api",
+  "name": "warp-orders-api",
   "version": "1.0.0",
-  "description": "Restaurant POS API for Cloudflare Workers",
+  "description": "Warp Orders API for Cloudflare Workers",
   "main": "src/index.js",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "db:create": "wrangler d1 create restaurant-pos-db",
-    "db:init": "wrangler d1 execute restaurant-pos-db --file=./schema.sql",
-    "db:init:local": "wrangler d1 execute restaurant-pos-db --local --file=./schema.sql"
+    "db:create": "wrangler d1 create warp-orders-db",
+    "db:init": "wrangler d1 execute warp-orders-db --file=./schema.sql",
+    "db:init:local": "wrangler d1 execute warp-orders-db --local --file=./schema.sql"
   },
   "devDependencies": {
     "wrangler": "^3.0.0"

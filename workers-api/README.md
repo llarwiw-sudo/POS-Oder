@@ -1,4 +1,4 @@
-# Restaurant POS API - Cloudflare Workers + D1
+# Warp Orders API - Cloudflare Workers + D1
 
 ## 📋 ขั้นตอนการ Deploy
 

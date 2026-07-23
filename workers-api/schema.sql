@@ -1,4 +1,4 @@
--- Restaurant POS Database Schema for Cloudflare D1
+-- Warp Orders Database Schema for Cloudflare D1
 
 -- Tables
 CREATE TABLE IF NOT EXISTS tables (
