@@ -20,7 +20,11 @@
     <!-- Controls -->
     <div class="controls">
       <div class="form-group">
-        <label>URL ของระบบ (IP หรือ Domain)</label>
+        <label>API URL (สำหรับดึงข้อมูลโต๊ะ)</label>
+        <input type="text" id="api-url" value="" placeholder="http://localhost:3000 หรือ https://xxx.workers.dev">
+      </div>
+      <div class="form-group">
+        <label>URL ของระบบ (สำหรับ QR Code)</label>
         <input type="text" id="base-url" value="" placeholder="http://your-ip:3000 หรือ https://your-domain.com">
       </div>
       <div class="form-group">
@@ -67,9 +71,9 @@
         
         let apiBaseUrl;
         if (isPages) {
-          // บน Cloudflare Pages - ใช้ Workers API
-          // เปลี่ยนเป็น URL ของ Workers API ที่ deploy ไว้
-          apiBaseUrl = 'https://warp-orders-api.llarwiw.workers.dev';
+          // บน Cloudflare Pages - ต้องใช้ Workers API
+          // ถ้ายังไม่ได้ deploy Workers ให้ใช้ Local Server แทน
+          apiBaseUrl = ''; // ปล่อยให้ผู้ใช้ใส่เอง
         } else if (isLocalhost) {
           // Local development
           apiBaseUrl = 'http://localhost:3000';
@@ -78,7 +82,24 @@
           apiBaseUrl = window.location.origin;
         }
         
+        // ใช้ค่าจาก input ถ้ามี
+        const inputApiUrl = document.getElementById('api-url').value.trim();
+        if (inputApiUrl) {
+          apiBaseUrl = inputApiUrl.replace(/\/$/, '');
+        }
+        
+        // Auto-fill ถ้ายังว่าง
+        if (!document.getElementById('api-url').value) {
+          document.getElementById('api-url').value = apiBaseUrl;
+        }
+        if (!document.getElementById('base-url').value) {
+          document.getElementById('base-url').value = isPages ? window.location.origin : apiBaseUrl;
+        }
+        
         console.log('API Base URL:', apiBaseUrl);
+        if (!apiBaseUrl) {
+          throw new Error('กรุณาใส่ API URL');
+        }
         const res = await fetch(`${apiBaseUrl}/api/tables`);
         if (!res.ok) throw new Error('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
         tables = await res.json();
@@ -106,6 +127,19 @@
     }
 
     async function generateQRCodes() {
+      // อัพเดท API URL จาก input
+      const inputApiUrl = document.getElementById('api-url').value.trim();
+      if (inputApiUrl) {
+        try {
+          const res = await fetch(`${inputApiUrl.replace(/\/$/, '')}/api/tables`);
+          if (!res.ok) throw new Error('ไม่สามารถเชื่อมต่อ API ได้');
+          tables = await res.json();
+        } catch (error) {
+          alert('❌ ไม่สามารถดึงข้อมูลโต๊ะได้: ' + error.message);
+          return;
+        }
+      }
+      
       const baseUrl = document.getElementById('base-url').value.replace(/\/$/, '');
       const zone = document.getElementById('zone-select').value;
       
