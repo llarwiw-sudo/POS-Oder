@@ -1,4 +1,4 @@
-// Restaurant POS API - Cloudflare Workers with D1
+// Warp Orders API - Cloudflare Workers with D1
 
 // CORS headers
 const corsHeaders = {
