@@ -21,7 +21,7 @@
     <div class="controls">
       <div class="form-group">
         <label>URL ของระบบ (IP หรือ Domain)</label>
-        <input type="text" id="base-url" value="http://localhost:3000" placeholder="http://your-ip:3000">
+        <input type="text" id="base-url" value="" placeholder="http://your-ip:3000 หรือ https://your-domain.com">
       </div>
       <div class="form-group">
         <label>เลือก Zone</label>
@@ -61,7 +61,14 @@
 
     async function loadTables() {
       try {
-        const res = await fetch('http://localhost:3000/api/tables');
+        // ใช้ API จาก server หลัก (port 3000)
+        // ถ้าเปิดจาก Live Server (port อื่น) ให้ใช้ localhost:3000
+        const currentPort = window.location.port;
+        const apiBaseUrl = (!currentPort || currentPort === '3000') 
+          ? window.location.origin 
+          : 'http://localhost:3000';
+        console.log('API Base URL:', apiBaseUrl);
+        const res = await fetch(`${apiBaseUrl}/api/tables`);
         if (!res.ok) throw new Error('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
         tables = await res.json();
         if (tables.length === 0) {
