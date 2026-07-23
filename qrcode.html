@@ -61,12 +61,23 @@
 
     async function loadTables() {
       try {
-        // ใช้ API จาก server หลัก (port 3000)
-        // ถ้าเปิดจาก Live Server (port อื่น) ให้ใช้ localhost:3000
-        const currentPort = window.location.port;
-        const apiBaseUrl = (!currentPort || currentPort === '3000') 
-          ? window.location.origin 
-          : 'http://localhost:3000';
+        // ตรวจสอบว่า deploy บน Cloudflare Pages หรือเปล่า
+        const isPages = window.location.hostname.includes('pages.dev');
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        
+        let apiBaseUrl;
+        if (isPages) {
+          // บน Cloudflare Pages - ใช้ Workers API
+          // เปลี่ยนเป็น URL ของ Workers API ที่ deploy ไว้
+          apiBaseUrl = 'https://warp-orders-api.llarwiw.workers.dev';
+        } else if (isLocalhost) {
+          // Local development
+          apiBaseUrl = 'http://localhost:3000';
+        } else {
+          // Production domain อื่นๆ
+          apiBaseUrl = window.location.origin;
+        }
+        
         console.log('API Base URL:', apiBaseUrl);
         const res = await fetch(`${apiBaseUrl}/api/tables`);
         if (!res.ok) throw new Error('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
