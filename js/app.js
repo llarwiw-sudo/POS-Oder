@@ -1,4 +1,4 @@
-// ===== Restaurant POS System - Main JavaScript =====
+// ===== Warp Orders - Main JavaScript =====
 
 const API_URL = 'https://restaurant-pos-api.llarwiw.workers.dev/api';
 
